@@ -2,6 +2,53 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Environment Setup
+
+### Prerequisites
+
+Before running the project, you need to set up accounts and obtain API keys:
+
+1. **PostgreSQL Database**
+
+   - Create account at https://neon.tech (recommended) or use any PostgreSQL provider
+   - Create a new project and database
+   - Copy your connection string
+
+2. **Clerk** (Authentication)
+
+   - Create account at https://dashboard.clerk.com
+   - Create a new application
+   - Copy your Publishable Key and Secret Key
+
+3. **OpenAI** (LLM for Code Generation)
+
+   - Create account at https://platform.openai.com/api-keys
+   - Create an API key
+   - Copy your API key
+
+4. **E2B** (Isolated Code Execution)
+
+   - Create account at https://e2b.dev
+   - Create a new project
+   - Copy your API key
+
+5. **Inngest** (Optional - Background Jobs)
+   - Create account at https://inngest.com
+   - Create a new project
+   - Copy your Event Key and Signing Key
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and fill in your actual credentials:
+
+```bash
+cp .env.example .env
+```
+
+Then update `.env` with your actual values from the services above.
+
+**Important**: Never commit `.env` to version control. The `.env.example` file shows the required variables without secrets.
+
 ## Quick Start Commands
 
 ```bash
@@ -133,8 +180,8 @@ When a project or message is created, an async event is sent:
 ```typescript
 inngest.send({
   name: "code-agent/run",
-  data: { projectId, messageId, userId }
-})
+  data: { projectId, messageId, userId },
+});
 ```
 
 The `codeAgentFunction` (async, up to 30 mins):
@@ -163,11 +210,13 @@ The `codeAgentFunction` (async, up to 30 mins):
 ### 6. State Management
 
 **Client-Side:**
+
 - **React Query:** Server state (projects, messages, usage)
 - **React Hooks:** Local UI state (active tabs, scroll position, etc.)
 - **react-hook-form:** Form submission in `ProjectForm`
 
 **Server-Side:**
+
 - **tRPC Context:** Authentication state (userId, Clerk auth)
 - **Database:** Persistent state (projects, messages, fragments)
 - **E2B Sandbox:** Temporary state (generated files, running processes)
@@ -211,8 +260,10 @@ When you need async processing (code generation, exports, etc.):
 ```typescript
 await inngest.send({
   name: "function-name",
-  data: { /* payload */ }
-})
+  data: {
+    /* payload */
+  },
+});
 ```
 
 The function runs serverlessly via Inngest webhook. Check progress via frontend polling or database queries.
@@ -220,11 +271,11 @@ The function runs serverlessly via Inngest webhook. Check progress via frontend 
 ### Testing Rate Limits
 
 ```typescript
-import { checkUsage } from "@/lib/usage"
+import { checkUsage } from "@/lib/usage";
 
-const { isAllowed } = await checkUsage(userId, 1)
+const { isAllowed } = await checkUsage(userId, 1);
 if (!isAllowed) {
-  throw new Error("Rate limit exceeded")
+  throw new Error("Rate limit exceeded");
 }
 ```
 
@@ -235,20 +286,6 @@ if (!isAllowed) {
 - `constants.ts` - Project templates, default prompts
 - `prompt.ts` - LLM system messages for code agent
 - `config/` - App-wide configuration
-
-### Environment Variables
-
-Create `.env.local`:
-
-```
-DATABASE_URL=postgresql://user:pass@host/db
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
-CLERK_SECRET_KEY=...
-INNGEST_EVENT_KEY=...
-INNGEST_SIGNING_KEY=...
-E2B_API_KEY=...
-OPENAI_API_KEY=...  # For LLM agent
-```
 
 ### Type Safety
 
@@ -282,12 +319,14 @@ OPENAI_API_KEY=...  # For LLM agent
 ## Troubleshooting
 
 ### Build Errors
+
 ```bash
 npm run lint  # Check for type/lint errors
 npm run build # Full build test
 ```
 
 ### Database Issues
+
 ```bash
 npx prisma reset         # Drop & recreate schema (dev only!)
 npx prisma db push      # Sync schema to DB
@@ -295,11 +334,13 @@ npx prisma studio      # GUI for DB inspection
 ```
 
 ### Inngest Issues
+
 - Check `/api/inngest` endpoint is running
 - Monitor via Inngest dashboard (if configured)
 - Logs in server console during `npm run dev`
 
 ### Rate Limit Not Working
+
 - Ensure `DATABASE_URL` is set
 - Check `Usage` table in database: `select * from "Usage"`
 - Verify timestamp format matches `DateTime` in Prisma schema
@@ -312,3 +353,74 @@ npx prisma studio      # GUI for DB inspection
 - E2B sandbox requires API key (check environment)
 - Clerk requires production keys (different from dev keys)
 - Rate limits use database TTL (ensure indexes on `Usage.expire`)
+
+## Libraries & Dependencies
+
+**Frontend**
+
+- `react` (19.0.0) - UI framework
+- `react-dom` (19.0.0) - React DOM rendering
+- `next` (15.3.4) - React framework with App Router & server components
+- `typescript` (5) - Type safety
+- `tailwindcss` (4) - Utility-first CSS framework
+- `@tailwindcss/postcss` (4) - Tailwind CSS PostCSS plugin
+- `tailwind-merge` (3.3.1) - Merge Tailwind CSS classes
+- `clsx` (2.1.1) - Conditional class name utility
+- `radix-ui` (1.4.2) & `@radix-ui/react-dialog` - Unstyled UI components
+- `lucide-react` (0.523.0) - Icon library
+- `class-variance-authority` (0.7.1) - Component variant management
+- `next-themes` (0.4.6) - Dark mode support
+- `sonner` (2.0.5) - Toast notification library
+- `react-error-boundary` (6.0.0) - Error boundary wrapper for graceful error handling
+
+**Backend & API**
+
+- `@trpc/server` (11.4.2) - tRPC server implementation
+- `@trpc/client` (11.4.2) - tRPC client implementation
+- `@trpc/tanstack-react-query` (11.4.2) - React Query integration for tRPC
+- `@tanstack/react-query` (5.81.2) - Server state management & caching
+- `@prisma/client` (6.10.1) - Prisma ORM for database access
+- `prisma` (6.10.1) - Prisma schema & migration tools
+- `zod` (3.25.67) - TypeScript-first schema validation
+- `superjson` (2.2.2) - JSON serialization for complex types in tRPC
+
+**Forms & Validation**
+
+- `react-hook-form` (7.58.1) - Performant form state management
+- `@hookform/resolvers` (5.1.1) - Form validation resolvers for React Hook Form
+
+**Code Execution & Sandbox**
+
+- `@e2b/code-interpreter` (1.5.1) - E2B sandbox for isolated code execution
+- `inngest` (3.39.2) - Background job orchestration & workflow engine
+- `@inngest/agent-kit` (0.8.3) - Multi-agent LLM framework on Inngest
+
+**Authentication**
+
+- `@clerk/nextjs` (6.23.1) - Clerk authentication for Next.js
+- `@clerk/themes` (2.2.52) - Clerk UI theme customization
+
+**Rate Limiting & Security**
+
+- `rate-limiter-flexible` (7.1.1) - Flexible rate limiting with Prisma backend
+
+**Utilities**
+
+- `date-fns` (4.1.0) - Date manipulation library
+- `prismjs` (1.30.0) & `@types/prismjs` - Code syntax highlighting
+- `react-resizable-panels` (3.0.3) - Resizable panel component
+- `react-textarea-autosize` (8.5.9) - Auto-expanding textarea
+- `random-word-slugs` (0.1.7) - Generate random slugs for project names
+- `client-only` (0.0.1) - Ensure code only runs on client
+- `server-only` (0.0.1) - Ensure code only runs on server
+
+**Development Tools**
+
+- `eslint` (9) - Code linting
+- `eslint-config-next` (15.3.4) - Next.js ESLint configuration
+- `@eslint/eslintrc` (3) - ESLint configuration
+- `@types/node` (20) - Node.js type definitions
+- `@types/react` (19) - React type definitions
+- `@types/react-dom` (19) - React DOM type definitions
+- `tsx` (4.20.3) - TypeScript execution for Node.js
+- `tw-animate-css` (1.3.4) - Tailwind CSS animations
